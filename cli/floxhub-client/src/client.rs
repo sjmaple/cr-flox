@@ -1862,7 +1862,9 @@ pub mod tests {
         mock.assert();
         assert_eq!(result.expect("expected Ok"), CheckBuildResponse {
             already_published: false,
+            lineage_changed: false,
             published_at: None,
+            registered_source: None,
             source_rev: None,
             source_rev_date: None,
         });
@@ -1893,7 +1895,9 @@ pub mod tests {
         mock.assert();
         assert_eq!(result.expect("expected Ok"), CheckBuildResponse {
             already_published: false,
+            lineage_changed: false,
             published_at: None,
+            registered_source: None,
             source_rev: None,
             source_rev_date: None,
         });
@@ -1927,6 +1931,43 @@ pub mod tests {
         }))
         .unwrap();
         assert_eq!(result.expect("expected Ok"), expected);
+    }
+
+    /// The registered source and lineage report deserialize into typed fields.
+    #[tokio::test]
+    async fn check_build_returns_registered_source_and_lineage_changed() {
+        let server = MockServer::start_async().await;
+        let mock = server.mock(|when, then| {
+            when.method("POST").path(CHECK_BUILD_PATH);
+            then.status(200).json_body(json!({
+                "already_published": false,
+                "registered_source": {
+                    "url": "https://example.com/repo",
+                    "ref": "main"
+                },
+                "lineage_changed": true
+            }));
+        });
+
+        let client = FloxhubClient::new(client_config(server.base_url().as_str())).unwrap();
+        let source_url: Url = "https://example.com/repo".parse().unwrap();
+
+        let result = client
+            .check_build_already_recorded(check_build_query(&source_url, &BTreeMap::new(), &[]))
+            .await;
+
+        mock.assert();
+        assert_eq!(result.expect("expected Ok"), CheckBuildResponse {
+            already_published: false,
+            lineage_changed: true,
+            published_at: None,
+            registered_source: Some(RegisteredSource {
+                ref_: Some("main".to_string()),
+                url: "https://example.com/repo".to_string(),
+            }),
+            source_rev: None,
+            source_rev_date: None,
+        });
     }
 
     /// A 5xx error from the server is returned as Err, not panicked or swallowed.
@@ -1985,6 +2026,7 @@ pub mod tests {
             },
             direct_inputs: None,
             dot_flox_dir: ".flox".to_string(),
+            expected_registered_source: None,
             factory_build_token: factory_build_token.map(str::to_string),
             locked_base_catalog_url: None,
             locked_inputs: None,

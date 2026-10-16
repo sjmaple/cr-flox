@@ -2808,6 +2808,21 @@
             "nullable": true,
             "type": "string",
             "format": "date-time"
+          },
+          "registered_source": {
+            "description": "The package's current source registration, if any.",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisteredSource"
+              }
+            ]
+          },
+          "lineage_changed": {
+            "type": "boolean",
+            "title": "Lineage Changed",
+            "description": "Whether publishing from the requested source would replace `registered_source`.",
+            "default": false
           }
         },
         "type": "object",
@@ -3486,6 +3501,15 @@
             "title": "Allow Lineage Change",
             "description": "Allow this publish to replace the package's registered source repository or ref.",
             "default": false
+          },
+          "expected_registered_source": {
+            "description": "With `allow_lineage_change`, replace the registration only while it still equals this source.",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisteredSource"
+              }
+            ]
           }
         },
         "type": "object",
@@ -3637,6 +3661,15 @@
             "title": "Allow Lineage Change",
             "description": "Allow this publish to replace the package's registered source repository or ref.",
             "default": false
+          },
+          "expected_registered_source": {
+            "description": "With `allow_lineage_change`, replace the registration only while it still equals this source.",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisteredSource"
+              }
+            ]
           },
           "narinfos": {
             "nullable": true,
@@ -4593,6 +4626,26 @@
         "type": "object",
         "title": "ReferencePoint",
         "description": "Allow at most one temporal anchor; no anchor means now."
+      },
+      "RegisteredSource": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "ref": {
+            "title": "Ref",
+            "description": "Branch name without the `refs/heads/` prefix.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "RegisteredSource",
+        "description": "The source repository and branch a package is registered to."
       },
       "ResolutionMessageGeneral": {
         "properties": {

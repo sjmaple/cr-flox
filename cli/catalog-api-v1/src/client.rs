@@ -939,6 +939,12 @@ manifest packages were built via the traditional flox manifest workflow.*/
     ///      "title": "Already Published",
     ///      "type": "boolean"
     ///    },
+    ///    "lineage_changed": {
+    ///      "title": "Lineage Changed",
+    ///      "description": "Whether publishing from the requested source would replace `registered_source`.",
+    ///      "default": false,
+    ///      "type": "boolean"
+    ///    },
     ///    "published_at": {
     ///      "title": "Published At",
     ///      "type": [
@@ -946,6 +952,21 @@ manifest packages were built via the traditional flox manifest workflow.*/
     ///        "null"
     ///      ],
     ///      "format": "date-time"
+    ///    },
+    ///    "registered_source": {
+    ///      "description": "The package's current source registration, if any.",
+    ///      "oneOf": [
+    ///        {
+    ///          "type": "null"
+    ///        },
+    ///        {
+    ///          "allOf": [
+    ///            {
+    ///              "$ref": "#/components/schemas/RegisteredSource"
+    ///            }
+    ///          ]
+    ///        }
+    ///      ]
     ///    },
     ///    "source_rev": {
     ///      "title": "Source Rev",
@@ -969,10 +990,16 @@ manifest packages were built via the traditional flox manifest workflow.*/
     #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug, PartialEq)]
     pub struct CheckBuildResponse {
         pub already_published: bool,
+        ///Whether publishing from the requested source would replace `registered_source`.
+        #[serde(default)]
+        pub lineage_changed: bool,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub published_at: ::std::option::Option<
             ::chrono::DateTime<::chrono::offset::Utc>,
         >,
+        ///The package's current source registration, if any.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub registered_source: ::std::option::Option<RegisteredSource>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub source_rev: ::std::option::Option<::std::string::String>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
@@ -2535,6 +2562,21 @@ without a client release.*/
     ///      "default": ".flox",
     ///      "type": "string"
     ///    },
+    ///    "expected_registered_source": {
+    ///      "description": "With `allow_lineage_change`, replace the registration only while it still equals this source.",
+    ///      "oneOf": [
+    ///        {
+    ///          "type": "null"
+    ///        },
+    ///        {
+    ///          "allOf": [
+    ///            {
+    ///              "$ref": "#/components/schemas/RegisteredSource"
+    ///            }
+    ///          ]
+    ///        }
+    ///      ]
+    ///    },
     ///    "locked_base_catalog_url": {
     ///      "title": "Locked Base Catalog Url",
     ///      "type": [
@@ -2588,6 +2630,9 @@ without a client release.*/
         pub derivation: PackageDerivation,
         #[serde(default = "defaults::package_build_dot_flox_dir")]
         pub dot_flox_dir: ::std::string::String,
+        ///With `allow_lineage_change`, replace the registration only while it still equals this source.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub expected_registered_source: ::std::option::Option<RegisteredSource>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub locked_base_catalog_url: ::std::option::Option<::std::string::String>,
         #[serde(
@@ -2820,6 +2865,21 @@ without a client release.*/
     ///      "default": ".flox",
     ///      "type": "string"
     ///    },
+    ///    "expected_registered_source": {
+    ///      "description": "With `allow_lineage_change`, replace the registration only while it still equals this source.",
+    ///      "oneOf": [
+    ///        {
+    ///          "type": "null"
+    ///        },
+    ///        {
+    ///          "allOf": [
+    ///            {
+    ///              "$ref": "#/components/schemas/RegisteredSource"
+    ///            }
+    ///          ]
+    ///        }
+    ///      ]
+    ///    },
     ///    "factory_build_token": {
     ///      "title": "Factory Build Token",
     ///      "type": [
@@ -2924,6 +2984,9 @@ without a client release.*/
         pub direct_inputs: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
         #[serde(default = "defaults::package_build_with_nar_info_dot_flox_dir")]
         pub dot_flox_dir: ::std::string::String,
+        ///With `allow_lineage_change`, replace the registration only while it still equals this source.
+        #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+        pub expected_registered_source: ::std::option::Option<RegisteredSource>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
         pub factory_build_token: ::std::option::Option<::std::string::String>,
         #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
@@ -4780,6 +4843,51 @@ state implies. Absent (null) means ordinary circulation.*/
                 .map_err(|e: self::error::ConversionError| {
                     <D::Error as ::serde::de::Error>::custom(e.to_string())
                 })
+        }
+    }
+    ///The source repository and branch a package is registered to.
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "title": "RegisteredSource",
+    ///  "description": "The source repository and branch a package is registered to.",
+    ///  "type": "object",
+    ///  "required": [
+    ///    "url"
+    ///  ],
+    ///  "properties": {
+    ///    "ref": {
+    ///      "title": "Ref",
+    ///      "description": "Branch name without the `refs/heads/` prefix.",
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "url": {
+    ///      "title": "Url",
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(::serde::Deserialize, ::serde::Serialize, Clone, Debug, PartialEq)]
+    pub struct RegisteredSource {
+        ///Branch name without the `refs/heads/` prefix.
+        #[serde(
+            rename = "ref",
+            default,
+            skip_serializing_if = "::std::option::Option::is_none"
+        )]
+        pub ref_: ::std::option::Option<::std::string::String>,
+        pub url: ::std::string::String,
+    }
+    impl ::std::convert::From<&RegisteredSource> for RegisteredSource {
+        fn from(value: &RegisteredSource) -> Self {
+            value.clone()
         }
     }
     ///`ResolutionMessageGeneral`
